@@ -1,0 +1,12 @@
+{
+  "name": "web-proxy-switcher",
+  "version": "1.0.0",
+  "description": "Browser-based web proxy with Ultraviolet, Scramjet, and Scramjet v2 switching",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

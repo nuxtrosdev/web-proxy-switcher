@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Proxy Switcher</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-wrap">
+          <div class="brand-mark">P</div>
+          <div>
+            <p class="eyebrow">Web proxy</p>
+            <h1>Proxy Switcher</h1>
+          </div>
+        </div>
+
+        <div class="controls">
+          <label class="engine-picker">
+            <span>Engine</span>
+            <select id="engineSelect">
+              <option value="uv">Ultraviolet</option>
+              <option value="scramjet">Scramjet</option>
+              <option value="scramjet-v2">Scramjet v2</option>
+            </select>
+          </label>
+        </div>
+      </header>
+
+      <main class="content-panel">
+        <form id="searchForm" class="search-form">
+          <label for="searchInput" class="sr-only">Search or URL</label>
+          <input
+            id="searchInput"
+            name="q"
+            type="text"
+            placeholder="Search the web or enter a URL"
+            autocomplete="off"
+          />
+          <button type="submit">Browse</button>
+        </form>
+
+        <div class="status-row" aria-live="polite">
+          <span id="engineBadge" class="badge">Ultraviolet</span>
+          <span class="privacy-note">History cloaked: all browsing stays inside this site.</span>
+        </div>
+
+        <div class="viewer-wrap">
+          <iframe
+            id="proxyFrame"
+            title="Proxied browsing session"
+            loading="lazy"
+            sandbox="allow-scripts allow-forms allow-same-origin allow-popups"
+          ></iframe>
+        </div>
+      </main>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

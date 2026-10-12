@@ -1,0 +1,140 @@
+const express = require('express');
+const path = require('path');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+const engineMap = {
+  uv: {
+    label: 'Ultraviolet',
+    landing: 'https://example.com'
+  },
+  scramjet: {
+    label: 'Scramjet',
+    landing: 'https://example.com'
+  },
+  'scramjet-v2': {
+    label: 'Scramjet v2',
+    landing: 'https://example.com'
+  }
+};
+
+function isLikelyUrl(value) {
+  return /^https?:\/\//i.test(value) || /^[a-z0-9.-]+\.[a-z]{2,}(\/.*)?$/i.test(value);
+}
+
+function buildSearchUrl(engine, query) {
+  const normalized = String(query || '').trim();
+
+  if (!normalized) {
+    return engineMap[engine]?.landing || engineMap.uv.landing;
+  }
+
+  if (isLikelyUrl(normalized)) {
+    const withProtocol = normalized.includes('://') ? normalized : `https://${normalized}`;
+    return withProtocol;
+  }
+
+  const searchParams = new URLSearchParams({ q: normalized });
+  const engineSearch = {
+    uv: `https://www.google.com/search?${searchParams.toString()}`,
+    scramjet: `https://www.bing.com/search?${searchParams.toString()}`,
+    'scramjet-v2': `https://duckduckgo.com/?${searchParams.toString()}`
+  };
+
+  return engineSearch[engine] || engineSearch.uv;
+}
+
+function rewriteHtmlAssets(html, baseUrl) {
+  const base = new URL(baseUrl);
+
+  return html.replace(/(src|href|action)=(["'])(.*?)\2/gi, (match, attr, quote, value) => {
+    if (!value || /^(javascript:|data:|mailto:|tel:|#)/i.test(value)) {
+      return match;
+    }
+
+    try {
+      const resolved = new URL(value, base).href;
+      const proxyUrl = `/api/view?url=${encodeURIComponent(resolved)}`;
+      return `${attr}=${quote}${proxyUrl}${quote}`;
+    } catch (error) {
+      return match;
+    }
+  });
+}
+
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('/health', (req, res) => {
+  res.json({ ok: true, service: 'web-proxy-switcher' });
+});
+
+app.get('/api/search', (req, res) => {
+  const engine = req.query.engine || 'uv';
+  const query = (req.query.q || '').toString();
+  const target = buildSearchUrl(engine, query);
+
+  res.json({
+    ok: true,
+    engine,
+    query,
+    target,
+    label: engineMap[engine]?.label || 'Ultraviolet'
+  });
+});
+
+app.get('/api/view', async (req, res) => {
+  const rawUrl = (req.query.url || '').toString();
+
+  if (!rawUrl) {
+    return res.status(400).json({ ok: false, message: 'Missing url parameter.' });
+  }
+
+  const targetUrl = (() => {
+    try {
+      return new URL(rawUrl.includes('://') ? rawUrl : `https://${rawUrl}`).href;
+    } catch (error) {
+      return null;
+    }
+  })();
+
+  if (!targetUrl) {
+    return res.status(400).json({ ok: false, message: 'Invalid target URL.' });
+  }
+
+  try {
+    const response = await fetch(targetUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; WebProxySwitcher/1.0; +https://example.com)'
+      }
+    });
+
+    const contentType = response.headers.get('content-type') || 'text/html';
+    const buffer = Buffer.from(await response.arrayBuffer());
+
+    if (contentType.includes('text/html')) {
+      const html = buffer.toString('utf8');
+      const sanitized = rewriteHtmlAssets(html, targetUrl);
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.send(sanitized);
+    }
+
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'no-store');
+    return res.send(buffer);
+  } catch (error) {
+    return res.status(502).json({
+      ok: false,
+      message: 'Unable to fetch target URL.',
+      error: error.message
+    });
+  }
+});
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.listen(PORT, () => {
+  console.log(`Web proxy switcher running on http://localhost:${PORT}`);
+});

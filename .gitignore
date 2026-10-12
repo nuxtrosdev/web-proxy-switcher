@@ -1,0 +1,48 @@
+# Web Proxy Switcher
+
+A simple web proxy app that lets the user switch between Ultraviolet, Scramjet, and Scramjet v2 modes while keeping browsing inside the site itself.
+
+## What it does
+
+- Provides a browser UI with an engine switcher for:
+  - Ultraviolet
+  - Scramjet
+  - Scramjet v2
+- Accepts a search query or full URL.
+- Sends the request through the local app instead of sending the user to a direct external URL.
+- Uses `history.pushState()` and an iframe to keep the browser history clean and avoid exposing direct searches in the user's normal history.
+- Uses a local backend proxy to fetch remote pages and render them inside the site.
+
+## Run it locally
+
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+2. Start the server:
+   ```bash
+   npm start
+   ```
+3. Open the app in a browser:
+   ```bash
+   http://localhost:3000
+   ```
+
+## Notes
+
+This project is intentionally built as a browser-side proxy interface and a same-origin fetch bridge. It keeps user browsing activity inside the app itself rather than exposing external URLs in the browser address bar.
+
+The search routing is handled by the app, and all proxied content is displayed in the iframe hosted on the local site.
+
+## Privacy implementation
+
+The design cloaks browse history by:
+
+- routing traffic through `/api/view`
+- using the same origin for page rendering
+- storing state in the local app URL, not the destination URL
+- never navigating the browser directly to the external search result page
+
+## License
+
+MIT
